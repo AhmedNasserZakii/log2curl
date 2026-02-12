@@ -1,42 +1,50 @@
 {
-  "name": "log2curl",
-  "displayName": "Log2Curl",
-  "description": "Convert copied API logs into ready-to-use cURL commands",
-  "publisher": "AhmedNasserZakii",
-  "version": "0.0.1",
-  "engines": {
-    "vscode": "^1.105.0"
-  },
-  "categories": [
-    "Other"
-  ],
-  "activationEvents": [],
-  "main": "./out/extension.js",
-  "contributes": {
-  "commands": [
-    {
-      "command": "log2curl.convert",
-      "title": "Log → Convert to cURL"
-    }
-  ]
-},
-  "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src",
-    "test": "vscode-test"
-  },
-  "devDependencies": {
-    "@types/vscode": "^1.109.0",
-    "@types/mocha": "^10.0.10",
-    "@types/node": "22.x",
-    "typescript-eslint": "^8.54.0",
-    "eslint": "^9.39.2",
-    "typescript": "^5.9.3",
-    "@vscode/test-cli": "^0.0.12",
-    "@vscode/test-electron": "^2.5.2"
-  }
-  
+    "name": "log2curl",
+    "displayName": "Log2Curl",
+    "description": "Convert copied API logs into ready-to-use cURL commands",
+    "publisher": "AhmedNasserZaki",
+    "version": "0.0.2",
+    "engines": {
+        "vscode": "^1.105.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/AhmedNasserZakii/log2curl.git"
+    },
+    "categories": [
+        "Other"
+    ],
+    "icon": "assets/icon.png",
+    "activationEvents": [],
+    "main": "./out/extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "log2curl.convert",
+                "title": "Log → Convert to cURL"
+            }
+        ]
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "pretest": "npm run compile && npm run lint",
+        "lint": "eslint src",
+        "test": "vscode-test"
+    },
+    "devDependencies": {
+        "@types/mocha": "^10.0.10",
+        "@types/node": "22.x",
+        "@types/vscode": "^1.105.0",
+        "@vscode/test-cli": "^0.0.12",
+        "@vscode/test-electron": "^2.5.2",
+        "eslint": "^9.39.2",
+        "typescript": "^5.9.3",
+        "typescript-eslint": "^8.54.0"
+    },
+    "dependencies": {
+        "@vscode/vsce": "^3.7.1"
+    },
+    "license": "MIT"
 }

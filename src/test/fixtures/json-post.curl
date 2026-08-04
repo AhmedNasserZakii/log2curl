@@ -1,0 +1,9 @@
+curl --location 'https://example.test/orders' \
+  --request POST \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --header 'X-Trace: fake-trace' \
+  --data '{
+  "customer": "Ahmed",
+  "quantity": 2
+}'

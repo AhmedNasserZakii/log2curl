@@ -1,25 +1,19 @@
 // ─────────────────────────────────────────────────────────────
 // extension.ts — Log2Curl entry point.
 //
-// Reads clipboard → extracts HTTP components → normalizes body
-// → builds cURL → copies to clipboard.
+// Reads clipboard → parses a shared RequestDraft → builds cURL
+// → copies to clipboard. Request Studio uses the same draft model.
 // ─────────────────────────────────────────────────────────────
 
 import * as vscode from 'vscode';
-import {
-  extractUrl,
-  extractMethod,
-  extractToken,
-  extractBody,
-  extractCustomHeaders,
-  unwrapBodyIfNeeded,
-  stripLogPrefixes,
-} from './extractors';
-import { normalizeBody } from './normalizer';
-import { buildCurl } from './curlBuilder';
+import { buildCurlFromDraft } from './curlBuilder';
+import { parseLogToRequestDraft } from './requestParser';
+import { HttpMethod } from './requestStudio/model';
+import { RequestStudioPanel } from './requestStudio/panel';
 
 export function activate(context: vscode.ExtensionContext) {
-  const disposable = vscode.commands.registerCommand(
+  const output = vscode.window.createOutputChannel('Log2Curl');
+  const convertCommand = vscode.commands.registerCommand(
     'log2curl.convert',
     async () => {
       try {
@@ -39,79 +33,53 @@ export function activate(context: vscode.ExtensionContext) {
           return;
         }
 
-        // ──────── 2. Extract URL (required) ────────
-        const url = extractUrl(text);
-        if (!url) {
-          vscode.window.showErrorMessage(
-            'Log2Curl: No HTTP/HTTPS URL found in clipboard.'
-          );
-          return;
-        }
-
-        // ──────── 3. Extract HTTP method ────────
-        let method: string | null = extractMethod(text);
-
-        if (!method) {
+        // ──────── 2. Parse a shared editable request draft ────────
+        let parsed = parseLogToRequestDraft(text);
+        if (!parsed.ok && parsed.errors.some(error => error.code === 'method-missing')) {
           const picked = await vscode.window.showQuickPick(
             ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
             { placeHolder: 'Could not detect HTTP method — please select one' }
           );
           if (!picked) { return; } // user cancelled
-          method = picked;
+          parsed = parseLogToRequestDraft(text, picked as HttpMethod);
         }
 
-        // ──────── 4. Extract authorization token (optional) ────────
-        const token = extractToken(text);
-
-        // ──────── 4b. Extract custom headers from HEADERS: section ────────
-        const customHeaders = extractCustomHeaders(text);
-
-        // ──────── 5. Extract & normalize body ────────
-        let bodyJson: string | null = null;
-
-        const rawBody = extractBody(text);
-
-        if (rawBody) {
-          try {
-            // Strip log-line prefixes before normalizing
-            const cleaned = stripLogPrefixes(rawBody);
-            const normalized = normalizeBody(cleaned);
-
-            // If normalized result is a wrapper (has url + method + body),
-            // pull out the nested body.
-            let parsed: unknown = JSON.parse(normalized);
-            parsed = unwrapBodyIfNeeded(parsed);
-
-            bodyJson = JSON.stringify(parsed, null, 2);
-          } catch (e) {
-            console.error('Log2Curl: body normalization failed', e);
-            const choice = await vscode.window.showWarningMessage(
-              'Log2Curl: Could not parse the request body. Generate cURL without body?',
-              'Yes',
-              'Cancel'
-            );
-            if (choice !== 'Yes') { return; }
-          }
-        } else {
-          // No body found — only warn for methods that usually need one
-          const needsBody = ['POST', 'PUT', 'PATCH'].includes(method);
-          if (needsBody) {
-            const choice = await vscode.window.showWarningMessage(
-              `Log2Curl: No request body found for ${method}. Generate cURL without body?`,
-              'Yes',
-              'Cancel'
-            );
-            if (choice !== 'Yes') { return; }
-          }
+        if (!parsed.ok) {
+          vscode.window.showErrorMessage(
+            `Log2Curl: ${parsed.errors.map(error => error.message).join(' ')}`
+          );
+          return;
         }
 
-        // ──────── 6. Build cURL ────────
-        const curl = buildCurl({ url, method, token, body: bodyJson, customHeaders });
+        if (parsed.warnings.length > 0) {
+          output.appendLine(
+            `Parsed clipboard with ${parsed.warnings.length} non-sensitive warning(s).`
+          );
+        }
 
-        // ──────── 7. Copy & notify ────────
+        // ──────── 3. Open Studio with the exact parsed request ────────
+        // Ignore the source log before the watcher starts so it cannot
+        // compete with this explicit conversion flow.
+        const studio = await RequestStudioPanel.open(
+          context,
+          output,
+          false,
+          [text]
+        );
+        const accepted = await studio.acceptConvertedDraft(
+          parsed.draft,
+          parsed.warnings.map(warning => warning.message)
+        );
+
+        // ──────── 4. Build and copy cURL from the shared request model ────────
+        const curl = buildCurlFromDraft(parsed.draft, { legacyDefaults: true });
+        studio.ignoreClipboardText(curl);
+
+        let copied = true;
         try {
           await vscode.env.clipboard.writeText(curl);
         } catch {
+          copied = false;
           // Clipboard write can fail on some OS / remote setups.
           // Fall back to opening the cURL in an untitled editor.
           const doc = await vscode.workspace.openTextDocument({
@@ -122,25 +90,65 @@ export function activate(context: vscode.ExtensionContext) {
           vscode.window.showInformationMessage(
             'Log2Curl: Clipboard unavailable — opened cURL in a new tab.'
           );
-          return;
         }
 
-        vscode.window.showInformationMessage(
-          'Log2Curl: cURL copied to clipboard!'
-        );
+        if (copied) {
+          vscode.window.showInformationMessage(
+            accepted
+              ? 'Log2Curl: cURL copied. Request opened in Studio.'
+              : 'Log2Curl: cURL copied. The edited Studio draft was kept.'
+          );
+        }
 
-        console.log('Log2Curl — generated cURL:\n', curl);
+        output.appendLine('Generated a cURL command from clipboard input.');
+
+        // The command itself explicitly promises to run the request. Request
+        // Studio still enforces Workspace Trust and its credential/unsafe-method
+        // confirmation prompts before any network traffic is sent.
+        if (accepted) { await studio.runCurrent(); }
 
       } catch (err) {
         // Top-level safety net — prevents crashing the Extension Host
         const msg = err instanceof Error ? err.message : String(err);
-        console.error('Log2Curl: unexpected error', err);
+        output.appendLine(`Unexpected error: ${msg}`);
         vscode.window.showErrorMessage(`Log2Curl: ${msg}`);
       }
     }
   );
 
-  context.subscriptions.push(disposable);
+  const openStudioCommand = vscode.commands.registerCommand(
+    'log2curl.openRequestStudio',
+    () => RequestStudioPanel.open(context, output, true)
+  );
+  const importStudioCommand = vscode.commands.registerCommand(
+    'log2curl.requestStudio.importClipboard',
+    async () => {
+      const studio = RequestStudioPanel.getCurrent() ??
+        await RequestStudioPanel.open(context, output, false);
+      await studio.importClipboard();
+    }
+  );
+  const runStudioCommand = vscode.commands.registerCommand(
+    'log2curl.requestStudio.run',
+    async () => {
+      const studio = RequestStudioPanel.getCurrent();
+      if (!studio) {
+        vscode.window.showInformationMessage(
+          'Log2Curl: Open Request Studio and import a request first.'
+        );
+        return;
+      }
+      await studio.runCurrent();
+    }
+  );
+
+  context.subscriptions.push(
+    output,
+    convertCommand,
+    openStudioCommand,
+    importStudioCommand,
+    runStudioCommand
+  );
 }
 
 export function deactivate() {}

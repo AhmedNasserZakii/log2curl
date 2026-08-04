@@ -1,8 +1,8 @@
 # Log2Curl
 
-**Convert any copied API log into a ready-to-use cURL command.**
+**Convert copied API logs into cURL, or edit and run them in an in-editor API client.**
 
-Log2Curl reads raw HTTP request logs from your clipboard and generates a valid `curl` command you can run in a terminal or share with your team. It works with logs from Flutter, Laravel, Node.js, Nginx, and generic HTTP clients—no manual copy-pasting of URLs, headers, or bodies.
+Log2Curl reads raw HTTP request logs from your clipboard and turns them into an editable request. Generate a safe cURL command as before, or use Request Studio to inspect the URL, params, headers, and body, send the request, and view the response without leaving VS Code or Cursor.
 
 ---
 
@@ -13,18 +13,38 @@ Log2Curl reads raw HTTP request logs from your clipboard and generates a valid `
 - **Semantic body detection** — Identifies the request body using labels (e.g. `REQUEST BODY/DATA:`, `request_body="..."`) and key analysis, not “last `{}` block.”
 - **Log-style JSON → valid JSON** — Normalizes unquoted keys, unquoted values, and empty fields so broken log output becomes valid JSON for `--data`.
 - **Custom headers** — Parses plain and box-formatted header sections, including multiline bearer tokens and API keys.
-- **Offline & cross-platform** — No network calls; runs on macOS, Windows, and Linux.
+- **Request Studio** — Postman-style Params, Headers, Body, cURL, source-log, and response views inside the editor.
+- **Safe local execution** — Explicit Run, cancellation, timeouts, response limits, safe redirects, credential prompts, and Workspace Trust protection.
+- **Reusable workflows** — Saved requests, redacted history, environments with `{{variables}}`, encrypted secret storage, and native JSON import/export.
+- **Cross-platform** — Runs on macOS, Windows, and Linux. Parsing and cURL generation are offline; only Run sends a network request.
 
 ---
 
-## How to Use
+## Convert, Open, and Run
 
 1. Copy raw API logs from your app, server logs, or debug console.
 2. Open the Command Palette: **`Cmd+Shift+P`** (macOS) or **`Ctrl+Shift+P`** (Windows/Linux).
-3. Run **“Log → Convert to cURL”**.
-4. The generated cURL is copied to your clipboard. Paste it into a terminal to run the request.
+3. Run **“Log → Convert to cURL & Run in Request Studio”**.
+4. Log2Curl copies the generated cURL, opens the parsed request in Request Studio, and runs it.
+5. Edit the request and press **Run** or **Cmd/Ctrl+Enter** to try it again.
+
+Requests with credentials require a one-time confirmation for the editor session. POST, PUT, PATCH, and DELETE also require confirmation by default. In Restricted Mode, the request opens but is not sent.
 
 If the clipboard is unavailable (e.g. some remote setups), the extension opens the cURL in a new editor tab instead.
+
+## Request Studio
+
+1. Copy a request log.
+2. Open the Command Palette and run **“Log2Curl: Open Request Studio”** to import it without automatically sending it.
+3. Review and edit the method, URL, query parameters, headers, and body.
+4. Select **Run** or press **Cmd/Ctrl+Enter**.
+5. Inspect the status, final URL, timing, size, headers, formatted body, raw response, or network error.
+
+Request Studio never sends a request from ordinary clipboard detection. The explicit **Convert to cURL & Run** command sends after opening Studio; clipboard watching only offers an import while the panel is visible. The optional restricted auto-run experiment is off by default and requires an exact hostname allowlist, a safe method, a visible panel, a trusted local workspace, and confirmation for each editor session.
+
+Sensitive request and response headers are masked by default. Environment secrets and credentials in named requests use the editor's encrypted `SecretStorage`. Persistent history is off by default and stores only redacted metadata—never query values, headers, or bodies. **Clear Stored Data** removes history, environments, saved requests, and their encrypted secrets. Exporting a request containing credentials requires confirmation and writes those credentials unencrypted to the selected JSON file; source logs are excluded from native request exports.
+
+Requests execute from the extension host shown in Request Studio. In a normal window that is your local machine; in a remote extension host it may be the remote machine. Automatic execution is disabled remotely. Explicit requests require Workspace Trust, use normal TLS validation, reject embedded URL credentials, block HTTPS-to-HTTP redirects, and strip sensitive headers on cross-origin redirects.
 
 ---
 
@@ -53,13 +73,20 @@ If the clipboard is unavailable (e.g. some remote setups), the extension opens t
 ## Requirements
 
 - **VS Code** `^1.105.0` (or Cursor / compatible editor).
-- No extra dependencies or network access; the extension runs fully offline.
+- No extra runtime dependencies. Parsing and cURL generation are offline; network access occurs only when you explicitly run a request.
 
 ---
 
 ## Extension Settings
 
-Log2Curl does not add any configurable settings. It uses the clipboard and the single command **“Log → Convert to cURL.”**
+- `log2curl.requestStudio.timeoutMs` — timeout, default 30 seconds.
+- `log2curl.requestStudio.maxResponseBytes` — retained response limit, default 10 MiB.
+- `log2curl.requestStudio.followRedirects` / `maxRedirects` — redirect behavior and limit.
+- `log2curl.requestStudio.watchClipboard` — detect request logs only while the panel is visible.
+- `log2curl.requestStudio.confirmUnsafeMethods` — confirm POST, PUT, PATCH, and DELETE.
+- `log2curl.requestStudio.persistHistory` — opt in to redacted metadata history.
+- `log2curl.requestStudio.autoRun` — restricted experimental auto-run, off by default.
+- `log2curl.requestStudio.autoRunAllowedHosts` — exact eligible hostnames; empty by default.
 
 ---
 
@@ -67,10 +94,24 @@ Log2Curl does not add any configurable settings. It uses the clipboard and the s
 
 - Very large logs (e.g. huge JSON bodies) may slow parsing; consider trimming the pasted text to the relevant request.
 - Multi-line unquoted values in log-style bodies are parsed up to the next structural delimiter (comma, `}`, newline); complex edge cases may need manual tweaking.
+- Request Studio currently supports JSON, raw text, and URL-encoded form bodies. Multipart and binary request bodies are planned later.
+- It does not maintain a cookie jar or provide a setting to bypass TLS certificate validation.
+- Custom HTTP proxy configuration is not currently exposed; requests use the networking behavior of the local or remote extension host.
+
+---
+
+The full Request Studio architecture, safety model, test plan, and release checklist are documented in the [implementation plan](docs/request-studio/README.md).
 
 ---
 
 ## Release Notes
+
+### 0.1.0
+
+- Added Request Studio: editable requests, local execution, cancellation, and response inspection.
+- Added secure redirects, limits, Workspace Trust checks, secret masking, and explicit credential/unsafe-method confirmation.
+- Added clipboard-assisted import, environments, encrypted named requests, redacted history, and restricted opt-in auto-run.
+- Hardened generated cURL commands with POSIX shell escaping.
 
 ### 0.0.3
 

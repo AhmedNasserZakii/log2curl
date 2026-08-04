@@ -1,0 +1,7 @@
+curl --location 'https://example.test/api/items?page=1' \
+  --request GET \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --header 'X-Access-Api: fake_access_value' \
+  --header 'lang: ar' \
+  --header 'Authorization: Bearer fake.first.token'

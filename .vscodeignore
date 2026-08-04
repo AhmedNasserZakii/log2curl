@@ -19,3 +19,6 @@ package-lock.json
 .cursor/**
 out/test/**
 .DS_Store
+docs/**
+src/webview/**
+tsconfig.webview.json

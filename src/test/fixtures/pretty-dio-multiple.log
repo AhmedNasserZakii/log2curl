@@ -1,0 +1,14 @@
+I/flutter ( 4242): ╔╣ Request ║ GET
+I/flutter ( 4242): ║ https://example.test/api/items?page=1
+I/flutter ( 4242): ╚════════════════════════════════════════════════════════════════════════════════════════════╝
+I/flutter ( 4242): ╔ Headers
+I/flutter ( 4242): ╟ Content-Type: application/json
+I/flutter ( 4242): ╟ Authorization:
+I/flutter ( 4242): ║ Bearer fake.first
+I/flutter ( 4242): ║ .token
+I/flutter ( 4242): ╟ X-Access-Api:
+I/flutter ( 4242): ║ fake_access
+I/flutter ( 4242): ║ _value
+I/flutter ( 4242): ╟ lang: ar
+I/flutter ( 4242): ╔╣ Request ║ DELETE
+I/flutter ( 4242): ║ https://example.test/api/items/2

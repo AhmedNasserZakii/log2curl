@@ -1,0 +1,7 @@
+Method: POST
+FULL URL: https://example.test/orders
+HEADERS:
+Content-Type: application/json
+X-Trace: fake-trace
+REQUEST BODY/DATA:
+{customer: Ahmed, quantity: 2}

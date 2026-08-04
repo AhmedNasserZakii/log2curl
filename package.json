@@ -1,9 +1,9 @@
 {
     "name": "log2curl",
     "displayName": "Log2Curl",
-    "description": "Convert copied API logs into ready-to-use cURL commands",
+    "description": "Convert API logs to cURL, edit and run requests, and inspect responses in VS Code or Cursor",
     "publisher": "AhmedNasserZaki",
-    "version": "0.0.3",
+    "version": "0.1.0",
     "engines": {
         "vscode": "^1.105.0"
     },
@@ -21,7 +21,11 @@
         "http",
         "api",
         "flutter",
-        "dio"
+        "dio",
+        "rest",
+        "api-client",
+        "request",
+        "cursor"
     ],
     "categories": [
         "Other"
@@ -29,32 +33,160 @@
     "icon": "assets/icon.png",
     "activationEvents": [],
     "main": "./out/extension.js",
+    "capabilities": {
+        "untrustedWorkspaces": {
+            "supported": "limited",
+            "description": "Parsing and cURL generation work in Restricted Mode. Sending network requests requires a trusted workspace.",
+            "restrictedConfigurations": [
+                "log2curl.requestStudio.timeoutMs",
+                "log2curl.requestStudio.maxResponseBytes",
+                "log2curl.requestStudio.followRedirects",
+                "log2curl.requestStudio.maxRedirects",
+                "log2curl.requestStudio.confirmUnsafeMethods",
+                "log2curl.requestStudio.autoRun",
+                "log2curl.requestStudio.autoRunMethods",
+                "log2curl.requestStudio.autoRunAllowedHosts"
+            ]
+        }
+    },
     "contributes": {
         "commands": [
             {
                 "command": "log2curl.convert",
-                "title": "Log → Convert to cURL"
+                "title": "Log → Convert to cURL & Run in Request Studio"
+            },
+            {
+                "command": "log2curl.openRequestStudio",
+                "title": "Log2Curl: Open Request Studio",
+                "icon": "$(globe)"
+            },
+            {
+                "command": "log2curl.requestStudio.importClipboard",
+                "title": "Log2Curl: Import Clipboard into Request Studio"
+            },
+            {
+                "command": "log2curl.requestStudio.run",
+                "title": "Log2Curl: Run Request Studio Request"
             }
-        ]
+        ],
+        "configuration": {
+            "title": "Log2Curl",
+            "properties": {
+                "log2curl.requestStudio.timeoutMs": {
+                    "type": "number",
+                    "default": 30000,
+                    "minimum": 1000,
+                    "maximum": 300000,
+                    "scope": "window",
+                    "description": "Request timeout in milliseconds."
+                },
+                "log2curl.requestStudio.maxResponseBytes": {
+                    "type": "number",
+                    "default": 10485760,
+                    "minimum": 1024,
+                    "maximum": 104857600,
+                    "scope": "window",
+                    "description": "Maximum response bytes retained for display."
+                },
+                "log2curl.requestStudio.followRedirects": {
+                    "type": "boolean",
+                    "default": true,
+                    "scope": "window",
+                    "description": "Follow HTTP redirects using Log2Curl's credential safety policy."
+                },
+                "log2curl.requestStudio.maxRedirects": {
+                    "type": "number",
+                    "default": 10,
+                    "minimum": 0,
+                    "maximum": 20,
+                    "scope": "window",
+                    "description": "Maximum redirects followed for one request."
+                },
+                "log2curl.requestStudio.watchClipboard": {
+                    "type": "boolean",
+                    "default": true,
+                    "scope": "window",
+                    "description": "Detect new request logs while Request Studio is visible."
+                },
+                "log2curl.requestStudio.confirmUnsafeMethods": {
+                    "type": "boolean",
+                    "default": true,
+                    "scope": "window",
+                    "description": "Confirm requests that use POST, PUT, PATCH, or DELETE."
+                },
+                "log2curl.requestStudio.persistHistory": {
+                    "type": "boolean",
+                    "default": false,
+                    "scope": "window",
+                    "description": "Persist redacted request metadata in Request Studio history."
+                },
+                "log2curl.requestStudio.autoRun": {
+                    "type": "boolean",
+                    "default": false,
+                    "scope": "window",
+                    "description": "Automatically run eligible clipboard requests while Request Studio is visible. Requires allowed hosts and session confirmation."
+                },
+                "log2curl.requestStudio.autoRunMethods": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "GET",
+                            "HEAD",
+                            "OPTIONS"
+                        ]
+                    },
+                    "default": [
+                        "GET",
+                        "HEAD",
+                        "OPTIONS"
+                    ],
+                    "scope": "window",
+                    "description": "Methods eligible for restricted automatic execution."
+                },
+                "log2curl.requestStudio.autoRunAllowedHosts": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [],
+                    "scope": "window",
+                    "description": "Exact hostnames eligible for restricted automatic execution."
+                }
+            }
+        }
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
-        "compile": "tsc -p ./",
+        "compile": "tsc -p ./ && npm run check:webview && npm run build:webview",
+        "build:webview": "esbuild src/webview/main.ts --bundle --outfile=media/requestStudio.js --platform=browser --format=iife --target=es2020",
+        "check:webview": "tsc -p tsconfig.webview.json --noEmit",
         "watch": "tsc -watch -p ./",
         "pretest": "npm run compile && npm run lint",
         "lint": "eslint src",
         "test": "vscode-test"
     },
     "devDependencies": {
+        "@types/jsdom": "^28.0.3",
         "@types/mocha": "^10.0.10",
         "@types/node": "22.x",
         "@types/vscode": "^1.105.0",
-        "@vscode/vsce": "^3.7.1",
         "@vscode/test-cli": "^0.0.12",
         "@vscode/test-electron": "^2.5.2",
+        "@vscode/vsce": "^3.9.2",
+        "esbuild": "^0.25.0",
         "eslint": "^9.39.2",
+        "jsdom": "^29.1.1",
+        "ovsx": "^1.1.0",
         "typescript": "^5.9.3",
         "typescript-eslint": "^8.54.0"
+    },
+    "overrides": {
+        "@vscode/vsce": {
+            "brace-expansion": "1.1.18"
+        },
+        "diff": "8.0.3",
+        "serialize-javascript": "7.0.5"
     },
     "license": "MIT"
 }

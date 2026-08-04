@@ -2,6 +2,10 @@
 
 All notable changes to the "log2curl" extension will be documented in this file.
 
+## [0.1.1] - 2026-08-04
+
+- Removed the MIT license declaration and license file. This release is not offered under an open-source license.
+
 ## [0.1.0] - 2026-08-04
 
 - Changed the primary Convert command to copy cURL, open the exact parsed request in Request Studio, and run it with the existing trust and confirmation safeguards.

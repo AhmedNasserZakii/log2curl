@@ -106,6 +106,10 @@ The full Request Studio architecture, safety model, test plan, and release check
 
 ## Release Notes
 
+### 0.1.1
+
+- Removed the MIT license declaration from new releases.
+
 ### 0.1.0
 
 - Added Request Studio: editable requests, local execution, cancellation, and response inspection.
@@ -143,6 +147,8 @@ The full Request Studio architecture, safety model, test plan, and release check
 ## Repository
 
 [https://github.com/AhmedNasserZakii/log2curl](https://github.com/AhmedNasserZakii/log2curl)
+
+Copyright © 2026 Ahmed Nasser Zaki. All rights reserved. This project is not offered under an open-source license.
 
 ---
 

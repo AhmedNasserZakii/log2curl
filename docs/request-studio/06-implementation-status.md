@@ -24,8 +24,8 @@ Updated: 2026-08-04
 - `npm audit`: zero known vulnerabilities.
 - `git diff --check`: pass.
 - `npx vsce ls`: 26 expected files; source tests, maps, docs, local state, dependencies, and credentials are excluded.
-- Packaged artifact: `log2curl-0.1.0.vsix`.
-- SHA-256: `c745d6e1b71577934661b1e999680c601cd87f0977289436a0fe2913e7eb0f75`.
+- Packaged artifact: `log2curl-0.1.1.vsix`.
+- SHA-256: `2b1d803fb7e57d20722c67e4944ee6e1a2a90c2efad95f2b53f97aff7961bd33`.
 - Both an isolated clean Cursor profile and the normal profile report `ahmednasserzaki.log2curl@0.1.0` after installation of this exact VSIX.
 - Isolated VS Code 1.105.1 and VS Code 1.131.0 profiles both install this exact VSIX and report `ahmednasserzaki.log2curl@0.1.0`.
 

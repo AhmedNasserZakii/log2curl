@@ -106,9 +106,9 @@ The full Request Studio architecture, safety model, test plan, and release check
 
 ## Release Notes
 
-### 0.1.1
+### 0.1.2
 
-- Removed the MIT license declaration from new releases.
+- Replaced the MIT license with a proprietary, all-rights-reserved license for new releases.
 
 ### 0.1.0
 

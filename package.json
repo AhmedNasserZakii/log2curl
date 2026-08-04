@@ -3,7 +3,7 @@
     "displayName": "Log2Curl",
     "description": "Convert API logs to cURL, edit and run requests, and inspect responses in VS Code or Cursor",
     "publisher": "AhmedNasserZaki",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "engines": {
         "vscode": "^1.105.0"
     },

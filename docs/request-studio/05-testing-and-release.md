@@ -125,9 +125,9 @@ Also test:
 10. Calculate and record the SHA-256 checksum.
 11. Commit and tag the exact source used to build the VSIX.
 12. Publish that identical VSIX to Visual Studio Marketplace:
-    `npx vsce publish --packagePath ./log2curl-0.1.1.vsix`.
+    `npx vsce publish --packagePath ./log2curl-0.1.2.vsix`.
 13. Sign in to Open VSX with `npx ovsx login ahmednasserzaki`, then publish the same file:
-    `npx ovsx publish --packagePath ./log2curl-0.1.1.vsix`.
+    `npx ovsx publish --packagePath ./log2curl-0.1.2.vsix`.
 14. Verify both store APIs and install paths report the new version.
 
 ## Post-release validation

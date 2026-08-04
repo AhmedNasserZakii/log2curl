@@ -93,6 +93,8 @@ export function extractUrl(text: string): string | null {
 /** Explicit patterns: "Method: POST", "POST /api HTTP/1.1", etc. */
 const EXPLICIT_METHOD_PATTERNS: RegExp[] = [
   /\bmethod\s*[:=]\s*["']?(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)["']?\b/i,
+  // Dio's PrettyDioLogger: "╔╣ Request ║ GET"
+  /\bRequest\s*[\u2500-\u257F|:]*\s*(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b/i,
   /\b(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+\/\S+\s+HTTP/i,
   /^\s*(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+https?:\/\//im,
   // "📤 POST REQUEST DETAILS" / "GET REQUEST" / "DELETE REQUEST SENT"
@@ -173,6 +175,16 @@ const TOKEN_PATTERNS: RegExp[] = [
  * Returns null if no token is found — caller should omit the header.
  */
 export function extractToken(text: string): string | null {
+  // PrettyDioLogger wraps long header values over several `║` lines. Parse
+  // the header section first so a JWT is not silently cut at the first line.
+  const authorization = extractCustomHeaders(text).find(
+    header => header.key.toLowerCase() === 'authorization'
+  );
+  if (authorization) {
+    const bearer = authorization.value.match(/^bearer\s+(.+)$/i);
+    if (bearer) { return bearer[1].replace(/\s+/g, ''); }
+  }
+
   for (const pattern of TOKEN_PATTERNS) {
     const m = text.match(pattern);
     if (m) { return m[1]; }
@@ -192,12 +204,17 @@ function isSeparatorLine(line: string): boolean {
   return /^[\u2500-\u257F\-=*_~+\s]+$/.test(stripped);
 }
 
+/** Removes PrettyDioLogger's box glyph at the start of a content line. */
+function stripBoxPrefix(line: string): string {
+  return line.replace(/^[\u2500-\u257F]+\s*/, '').trim();
+}
+
 /**
  * Extracts headers from a labelled **HEADERS:** section where each header
  * is a plain `Key: Value` line (NOT inside `{ }`).
  *
- * Stops reading at the first separator line, blank line, or section label
- * (a line whose "key" contains spaces, like "REQUEST BODY:").
+ * Supports PrettyDioLogger's `╟ Key: value` entries and `║ continuation`
+ * lines. Stops at a separator, another section, or another request.
  *
  * Example input section:
  *   flutter: 📋 HEADERS:
@@ -212,8 +229,8 @@ export function extractCustomHeaders(text: string): CustomHeader[] {
   let sectionStart = -1;
   for (let i = 0; i < lines.length; i++) {
     // Strip log prefix, then check if the line ENDS with "HEADERS:" or "HEADER:"
-    const cleaned = stripLogPrefixes(lines[i]).trim();
-    if (/HEADERS?\s*:\s*$/i.test(cleaned)) {
+    const cleaned = stripBoxPrefix(stripLogPrefixes(lines[i]).trim());
+    if (/^HEADERS?\s*:?\s*$/i.test(cleaned)) {
       sectionStart = i + 1;
       break;
     }
@@ -223,10 +240,32 @@ export function extractCustomHeaders(text: string): CustomHeader[] {
 
   // ---- Read key-value lines until a boundary ----
   for (let i = sectionStart; i < lines.length; i++) {
-    const cleaned = stripLogPrefixes(lines[i]).trim();
+    const withoutLogPrefix = stripLogPrefixes(lines[i]).trim();
+
+    // A bottom box border closes this section. Checking before removing the
+    // box prefix distinguishes it from a blank-looking separator.
+    if (/^[╚└]/u.test(withoutLogPrefix)) { break; }
+
+    const isContinuation = /^[║│]/u.test(withoutLogPrefix);
+    const cleaned = stripBoxPrefix(withoutLogPrefix);
 
     // Stop at separator or blank line
     if (isSeparatorLine(cleaned)) { break; }
+
+    // A wrapped header value has no key of its own. PrettyDioLogger splits
+    // opaque values (JWTs/API keys) at arbitrary character boundaries, so
+    // concatenate without inserting whitespace.
+    if (isContinuation) {
+      if (headers.length === 0) { break; }
+      headers[headers.length - 1].value += cleaned;
+      continue;
+    }
+
+    // PrettyDioLogger may start the next request immediately after the last
+    // header, without drawing a closing border for the Headers section.
+    if (/^(?:Request|Query\s+Parameters?|Body|Data)\b/i.test(cleaned)) {
+      break;
+    }
 
     // Parse "Key: Value" — the first colon splits key from value
     const colonIdx = cleaned.indexOf(':');

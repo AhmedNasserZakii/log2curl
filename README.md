@@ -8,11 +8,11 @@ Log2Curl reads raw HTTP request logs from your clipboard and generates a valid `
 
 ## Features
 
-- **Framework-agnostic** — Supports Flutter/Dart, Laravel/PHP, Node/NestJS, Nginx reverse-proxy logs, and generic HTTP logs.
+- **Framework-agnostic** — Supports Flutter/Dart (including PrettyDioLogger), Laravel/PHP, Node/NestJS, Nginx reverse-proxy logs, and generic HTTP logs.
 - **Smart extraction** — Infers URL (full URL, base+path, or host+path), HTTP method, Authorization token, custom headers, and request body from unstructured text.
 - **Semantic body detection** — Identifies the request body using labels (e.g. `REQUEST BODY/DATA:`, `request_body="..."`) and key analysis, not “last `{}` block.”
 - **Log-style JSON → valid JSON** — Normalizes unquoted keys, unquoted values, and empty fields so broken log output becomes valid JSON for `--data`.
-- **Custom headers** — Parses non-JSON header sections (e.g. `HEADERS:` followed by `Key: Value` lines) and adds them to the cURL command.
+- **Custom headers** — Parses plain and box-formatted header sections, including multiline bearer tokens and API keys.
 - **Offline & cross-platform** — No network calls; runs on macOS, Windows, and Linux.
 
 ---
@@ -32,7 +32,7 @@ If the clipboard is unavailable (e.g. some remote setups), the extension opens t
 
 | Source | What Log2Curl extracts |
 |--------|------------------------|
-| **Flutter** | `FULL URL:`, `BASE URL:` + `PATH:`, `POST REQUEST DETAILS`, `HEADERS:` (line-by-line), `REQUEST BODY/DATA:` |
+| **Flutter / Dio** | `FULL URL:`, `BASE URL:` + `PATH:`, `Request ║ GET`, PrettyDioLogger box output, multiline headers, `REQUEST BODY/DATA:` |
 | **Laravel / PHP** | Full URL, method, token, body from JSON or log-style blocks |
 | **Node / NestJS** | Method, URL, body; log prefixes stripped |
 | **Nginx / logfmt** | `host=...` + path from request line, `request_body="{...}"`, `authorization="Bearer ..."` |
@@ -43,9 +43,9 @@ If the clipboard is unavailable (e.g. some remote setups), the extension opens t
 ## What Gets Extracted
 
 - **URL** — Prefers labeled `FULL URL:` or `REQUEST URL:`; otherwise base URL + path, or first `http(s)://` URL, or host + path from request line.
-- **HTTP method** — From `Method: POST`, `POST REQUEST DETAILS`, `POST /api HTTP/1.1`, or framework hints (`postRequest`, `http.post`, `axios.post`, etc.). If none found, you can pick from a list.
-- **Authorization** — From `Authorization: Bearer ...`, `user token ...`, or `authorization="Bearer ..."`.
-- **Custom headers** — From a `HEADERS:` (or `HEADER:`) section with `Key: Value` lines.
+- **HTTP method** — From `Method: POST`, `Request ║ GET`, `POST REQUEST DETAILS`, `POST /api HTTP/1.1`, or framework hints (`postRequest`, `http.post`, `axios.post`, etc.). If none is found, you can pick from a list.
+- **Authorization** — From single-line or wrapped `Authorization: Bearer ...` values, `user token ...`, or `authorization="Bearer ..."`.
+- **Custom headers** — From plain `HEADERS:` sections or PrettyDioLogger's `╔ Headers`, `╟ Key: Value`, and `║ continuation` lines.
 - **Request body** — From labeled body/data sections, logfmt `request_body="..."`, or the highest-scoring `{...}` block (excluding headers/metadata).
 
 ---
@@ -71,6 +71,18 @@ Log2Curl does not add any configurable settings. It uses the clipboard and the s
 ---
 
 ## Release Notes
+
+### 0.0.3
+
+- Added PrettyDioLogger box-format support.
+- Detects request methods from lines such as `╔╣ Request ║ GET`.
+- Reassembles wrapped Authorization tokens and API-key values.
+- Stops header parsing cleanly when another request begins.
+
+### 0.0.2
+
+- Added Marketplace artwork, repository metadata, license, and expanded documentation.
+- Improved packaging and publishing configuration.
 
 ### 0.0.1
 

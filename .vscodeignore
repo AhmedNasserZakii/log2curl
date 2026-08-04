@@ -17,3 +17,5 @@ src/**
 tsconfig.json
 package-lock.json
 .cursor/**
+out/test/**
+.DS_Store
